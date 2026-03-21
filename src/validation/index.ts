@@ -13,7 +13,7 @@ import {
   InvalidNetworkError,
   MissingParameterError,
   ValidationError,
-} from './index';
+} from '../errors';
 
 /**
  * Validates a Stellar address (public key or contract)

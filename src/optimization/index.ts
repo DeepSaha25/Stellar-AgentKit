@@ -6,7 +6,7 @@
  */
 
 import Big from "big.js";
-import { validateStellarAddress } from "./validation";
+import { validateStellarAddress } from "../validation";
 
 /**
  * Cache entry with TTL

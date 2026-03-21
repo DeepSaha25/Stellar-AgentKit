@@ -32,7 +32,7 @@ import {
   OperationNotAllowedError,
   isAgentKitError,
   ensureAgentKitError,
-} from "../src/errors/index";
+} from "../errors/index";
 import {
   handleError,
   handleErrorSync,
@@ -42,7 +42,7 @@ import {
   chainOperations,
   isRetriable,
   retryWithBackoff,
-} from "../src/errors/handlers";
+} from "../errors/handlers";
 
 // ============================================================================
 // Test Framework (Simple Jest-like)
