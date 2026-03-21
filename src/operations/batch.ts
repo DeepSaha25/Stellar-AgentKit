@@ -14,6 +14,8 @@ import {
   BASE_FEE,
   Networks,
   rpc,
+  Memo,
+  Keypair,
 } from "@stellar/stellar-sdk";
 import { TransactionError, ContractError, ValidationError } from "../errors";
 
@@ -166,14 +168,17 @@ export class BatchTransactionBuilder {
     }
 
     // Calculate fee: base + (count * operation fee) with multiplier
-    const operationFee = BASE_FEE * Math.ceil(this.operations.length * this.options.feeMultiplier);
+    const baseFeeNum = parseInt(BASE_FEE, 10);
+    const operationFee = baseFeeNum * Math.ceil(this.operations.length * this.options.feeMultiplier);
+
+    const memoObj = this.options.memo
+      ? Memo.text(this.options.memo)
+      : undefined;
 
     const builder = new TransactionBuilder(this.sourceAccount, {
       fee: operationFee.toString(),
       networkPassphrase: this.options.networkPassphrase,
-      memo: this.options.memo
-        ? { type: "text", value: this.options.memo }
-        : undefined,
+      memo: memoObj,
     });
 
     // Add all operations
@@ -228,12 +233,21 @@ export async function executeBatchTransaction(
     const server = new rpc.Server(rpcUrl, { allowHttp: true });
 
     // Sign transaction
-    const { Keypair, TransactionEnvelope } = await import("@stellar/stellar-sdk");
     const keypair = Keypair.fromSecret(privateKey);
     transaction.sign(keypair);
 
-    // Submit transaction
-    const response = await server.submitTransaction(transaction);
+    // Submit transaction using sendTransaction (if available) or throw
+    let response: any;
+    if ('sendTransaction' in server) {
+      response = await (server as any).sendTransaction(transaction);
+    } else if ('submitTransaction' in server) {
+      response = await (server as any).submitTransaction(transaction);
+    } else {
+      throw new TransactionError(
+        "RPC server does not support transaction submission",
+        { rpcUrl }
+      );
+    }
 
     if (!("hash" in response)) {
       throw new TransactionError(
@@ -299,9 +313,11 @@ export async function simulateBatchTransaction(
       success: true,
     };
   } catch (error) {
-    throw new NetworkError(
+    throw new TransactionError(
       `Failed to simulate batch transaction: ${error instanceof Error ? error.message : String(error)}`,
-      { rpcUrl }
+      { rpcUrl },
+      undefined,
+      error instanceof Error ? error : undefined
     );
   }
 }

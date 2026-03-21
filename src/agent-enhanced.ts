@@ -50,6 +50,7 @@ export class AgentClient {
   private publicKey: string;
   private validateInput: boolean;
   private autoRetry: boolean;
+  private allowRetryOnWrites: boolean;
 
   constructor(config: AgentConfig) {
     // Validate network
@@ -81,9 +82,11 @@ export class AgentClient {
     this.publicKey = config.publicKey || process.env.STELLAR_PUBLIC_KEY || "";
     this.validateInput = config.validateInput !== false;
     
-    // Auto-retry disabled by default for blockchain write operations
-    // Only enable if user explicitly opts in for write operations
-    this.autoRetry = config.autoRetry === true && config.allowRetryOnWrites === true;
+    // Auto-retry for reads is safe (idempotent)
+    // Auto-retry for writes requires explicit opt-in (dangerous if not idempotent)
+    // These are independently configurable
+    this.autoRetry = config.autoRetry === true;  // Enable for safe read operations
+    this.allowRetryOnWrites = config.allowRetryOnWrites === true;  // Separate control for write retries
   }
 
   /**
@@ -94,7 +97,7 @@ export class AgentClient {
       params = validateSwapParams(params);
     }
 
-    return await this.executeWithRetry(() =>
+    return await this.executeWriteWithRetry(() =>
       contractSwap(
         params.to,
         params.buyA,
@@ -123,7 +126,7 @@ export class AgentClient {
       );
     }
 
-    return await this.executeWithRetry(() => bridgeTokenTool.func(params));
+    return await this.executeWriteWithRetry(() => bridgeTokenTool.func(params));
   }
 
   /**
@@ -136,7 +139,7 @@ export class AgentClient {
           params = validateDepositParams(params);
         }
 
-        return await this.executeWithRetry(() =>
+        return await this.executeWriteWithRetry(() =>
           contractDeposit(params.to, params.desiredA, params.minA, params.desiredB, params.minB, this.network)
         );
       },
@@ -146,7 +149,7 @@ export class AgentClient {
           params = validateWithdrawParams(params);
         }
 
-        return await this.executeWithRetry(() =>
+        return await this.executeWriteWithRetry(() =>
           contractWithdraw(params.to, params.shareAmount, params.minA, params.minB, this.network)
         );
       },
@@ -162,15 +165,32 @@ export class AgentClient {
   }
 
   /**
-   * Execute operation with optional retry logic
-   * WARNING: Retry should only be used for read-only operations
+   * Execute read-only operation with optional retry logic
+   * Retries are safe for read-only operations (idempotent)
    */
   private async executeWithRetry<T>(operation: () => Promise<T>): Promise<T> {
     if (this.autoRetry) {
+      return await retryWithBackoff(operation, {
+        maxAttempts: 3,
+        initialDelayMs: 100,
+      });
+    }
+
+    return await operation();
+  }
+
+  /**
+   * Execute write operation with optional retry logic
+   * WARNING: Retries for write operations can cause duplicate transactions
+   * Only enable if the operation is idempotent or you have duplicate detection
+   */
+  private async executeWriteWithRetry<T>(operation: () => Promise<T>): Promise<T> {
+    // For write operations, both autoRetry AND allowRetryOnWrites must be true
+    if (this.autoRetry && this.allowRetryOnWrites) {
       console.warn(
-        "Executing operation with retry enabled. " +
-        "This is only safe for read-only operations. " +
-        "For write operations, retries can cause duplicate transactions."
+        "⚠️ WARNING: Executing write operation with retry enabled. " +
+        "This can cause duplicate transactions if the operation is not idempotent. " +
+        "Ensure you have duplicate detection or idempotent operations before enabling this."
       );
       return await retryWithBackoff(operation, {
         maxAttempts: 3,

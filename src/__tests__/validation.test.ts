@@ -289,7 +289,7 @@ test("isRetriable should return false for validation errors", () => {
 // SUMMARY
 // ============================================================================
 
-console.log("\n${"=".repeat(60)}`);
+console.log("\n" + "=".repeat(60));
 console.log(`\n✅ Tests Passed: ${passed}`);
 console.log(`❌ Tests Failed: ${failed}`);
 console.log(`📊 Total Tests: ${passed + failed}`);

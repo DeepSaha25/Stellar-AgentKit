@@ -43,7 +43,7 @@ export function validateStellarAddress(
   }
 
   if (type === 'contract' || type === 'any') {
-    if (StellarSdk.StrKey.isValidContractId(trimmed)) {
+    if (StellarSdk.StrKey.isValidContract(trimmed)) {
       return trimmed;
     }
   }
@@ -125,7 +125,9 @@ export function validateAmount(
   try {
     bigAmount = new Big(amountStr);
   } catch (error) {
-    throw new InvalidAmountError(amount as any, {}, undefined, error as Error);
+    throw new InvalidAmountError(amount as any, {
+      parseError: error instanceof Error ? error.message : String(error),
+    });
   }
 
   // Check for NaN or Infinity

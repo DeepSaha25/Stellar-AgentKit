@@ -54,7 +54,9 @@ export class AgentKitError extends Error {
               return `  ${k}: null`;
             }
             try {
-              return `  ${k}: ${JSON.stringify(v)}`;
+              return `  ${k}: ${JSON.stringify(v, (_key, value) => 
+                typeof value === 'bigint' ? `${value.toString()}n` : value
+              )}`;
             } catch {
               return `  ${k}: [Unserializable: ${typeof v}]`;
             }

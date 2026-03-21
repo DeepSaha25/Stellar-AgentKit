@@ -57,15 +57,19 @@ export async function estimateSorobanFee(
     }
 
     // Parse simulation response for fee data
-    if (!("results" in simulation) || !simulation.results[0]) {
+    if (
+      !("results" in simulation) ||
+      !(simulation as any).results ||
+      !(simulation as any).results[0]
+    ) {
       throw new ContractError(
         "Invalid simulation response: missing results",
         { simulation: JSON.stringify(simulation) }
       );
     }
 
-    const result = simulation.results[0];
-    const simLatestLedger = simulation.latestLedger || 0;
+    const result = (simulation as any).results[0];
+    const simLatestLedger = (simulation as any).latestLedger || 0;
 
     // Extract resource costs from simulation
     let cpuCost = "0";
@@ -143,8 +147,8 @@ export function estimateSwapFee(swapAmount: string): FeeEstimate {
   return {
     baseFee: BASE_FEE.toString(),
     networkFee: networkFee.toString(),
-    simulationFee: protocolSlippage.toString(), // Slippage in token units
-    totalFee: networkFee.toString(), // Only stroops, not token amounts
+    simulationFee: "0",  // Simulation fee in stroops (actual value depends on pool state)
+    totalFee: networkFee.toString(), // Network fee in stroops
     resourceFees: {
       cpu: "5000000", // Approximate CPU cost
       memory: "100000",
