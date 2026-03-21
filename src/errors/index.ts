@@ -34,14 +34,35 @@ export class AgentKitError extends Error {
 
   /**
    * Get human-readable error message with context and suggestion
+   * Safely handles non-serializable values like BigInt
    */
   getFormattedMessage(): string {
     let output = `${this.name} [${this.code}]\n${this.message}`;
 
     if (Object.keys(this.context).length > 0) {
-      output += `\n\nContext:\n${Object.entries(this.context)
-        .map(([k, v]) => `  ${k}: ${JSON.stringify(v)}`)
-        .join('\n')}`;
+      try {
+        output += `\n\nContext:\n${Object.entries(this.context)
+          .map(([k, v]) => {
+            // Handle BigInt and other non-serializable types
+            if (typeof v === 'bigint') {
+              return `  ${k}: ${v.toString()}n`;
+            }
+            if (v === undefined) {
+              return `  ${k}: undefined`;
+            }
+            if (v === null) {
+              return `  ${k}: null`;
+            }
+            try {
+              return `  ${k}: ${JSON.stringify(v)}`;
+            } catch {
+              return `  ${k}: [Unserializable: ${typeof v}]`;
+            }
+          })
+          .join('\n')}`;
+      } catch (e) {
+        output += `\n\nContext: [Failed to serialize context - ${String(e)}]`;
+      }
     }
 
     if (this.suggestion) {

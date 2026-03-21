@@ -7,7 +7,7 @@
 
 import { rpc, BASE_FEE, TransactionBuilder, Account } from "@stellar/stellar-sdk";
 import Big from "big.js";
-import { NetworkError, ContractError } from "./errors";
+import { NetworkError, ContractError } from "../errors";
 
 export interface FeeEstimate {
   baseFee: string;           // Base fee in stroops
@@ -122,26 +122,29 @@ export async function estimateSorobanFee(
  * Estimates swap operation fee
  * 
  * @param swapAmount The amount being swapped
- * @param slippage Expected slippage percentage
- * @returns Estimated total cost (swap fee + network fee)
+ * @returns Estimated network fee in stroops
+ * 
+ * Note: Slippage is handled separately from network fees.
+ * Network fee is a fixed Soroban cost in stroops.
+ * Slippage tolerance should be applied to expected output separately.
  */
-export function estimateSwapFee(
-  swapAmount: string,
-  slippage: number = 0.01 // 1% default
-): FeeEstimate {
+export function estimateSwapFee(swapAmount: string): FeeEstimate {
   const amount = new Big(swapAmount);
 
-  // Typical swap costs on Soroban
-  const swapFee = amount.times(0.003); // 0.3% swap fee
+  // Typical swap costs on Soroban (in stroops)
+  // Network fee is fixed Soroban operation cost
   const networkFee = new Big(BASE_FEE).times(2.5); // ~2.5x base for swap
 
-  const totalFee = swapFee.plus(networkFee);
+  // Slippage is a percentage of the TOKEN amount, not stroops
+  // Example: 1% slippage on 1000 USDC = 10 USDC loss
+  // This is separate from the network fee
+  const protocolSlippage = amount.times(0.003); // 0.3% protocol fee
 
   return {
     baseFee: BASE_FEE.toString(),
     networkFee: networkFee.toString(),
-    simulationFee: swapFee.toString(),
-    totalFee: totalFee.toString(),
+    simulationFee: protocolSlippage.toString(), // Slippage in token units
+    totalFee: networkFee.toString(), // Only stroops, not token amounts
     resourceFees: {
       cpu: "5000000", // Approximate CPU cost
       memory: "100000",

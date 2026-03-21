@@ -15,7 +15,7 @@ import {
   Networks,
   rpc,
 } from "@stellar/stellar-sdk";
-import { TransactionError, ContractError, ValidationError } from "./errors";
+import { TransactionError, ContractError, ValidationError } from "../errors";
 
 export interface BatchOperation {
   contract: Contract;

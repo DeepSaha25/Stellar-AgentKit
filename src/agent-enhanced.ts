@@ -39,8 +39,10 @@ export interface AgentConfig {
   allowMainnet?: boolean;
   /** Enable validation (default: true) */
   validateInput?: boolean;
-  /** Enable automatic retries for retriable errors (default: true) */
+  /** Enable automatic retries (default: false). WARNING: Only safe for read-only operations. */
   autoRetry?: boolean;
+  /** Explicit opt-in for retrying write operations (very dangerous - can cause duplicate transactions) */
+  allowRetryOnWrites?: boolean;
 }
 
 export class AgentClient {
@@ -78,7 +80,10 @@ export class AgentClient {
 
     this.publicKey = config.publicKey || process.env.STELLAR_PUBLIC_KEY || "";
     this.validateInput = config.validateInput !== false;
-    this.autoRetry = config.autoRetry !== false;
+    
+    // Auto-retry disabled by default for blockchain write operations
+    // Only enable if user explicitly opts in for write operations
+    this.autoRetry = config.autoRetry === true && config.allowRetryOnWrites === true;
   }
 
   /**
@@ -158,9 +163,15 @@ export class AgentClient {
 
   /**
    * Execute operation with optional retry logic
+   * WARNING: Retry should only be used for read-only operations
    */
   private async executeWithRetry<T>(operation: () => Promise<T>): Promise<T> {
     if (this.autoRetry) {
+      console.warn(
+        "Executing operation with retry enabled. " +
+        "This is only safe for read-only operations. " +
+        "For write operations, retries can cause duplicate transactions."
+      );
       return await retryWithBackoff(operation, {
         maxAttempts: 3,
         initialDelayMs: 100,
