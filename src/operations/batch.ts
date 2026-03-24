@@ -246,7 +246,16 @@ export async function executeBatchTransaction(
   privateKey: string,
   options: BatchTransactionOptions = {}
 ): Promise<BatchExecutionResult> {
-  const networkPassphrase = options.networkPassphrase || Networks.TESTNET;
+  // Require explicit network passphrase to prevent accidental testnet submission of mainnet transactions
+  if (!options.networkPassphrase) {
+    throw new TransactionError(
+      "networkPassphrase must be explicitly provided to executeBatchTransaction",
+      { suggestion: "Specify which network: Networks.TESTNET or Networks.MAINNET" },
+      "Pass networkPassphrase in options to ensure transactions are submitted to the correct network"
+    );
+  }
+  
+  const networkPassphrase = options.networkPassphrase;
   const rpcUrl = options.rpcUrl || getDefaultRpcUrl(networkPassphrase);
   const timeoutSeconds = options.timeout ?? 300;
 
