@@ -147,6 +147,15 @@ export async function estimateSorobanFee(
 export function estimateSwapFee(swapAmount: string): FeeEstimate {
   const amount = new Big(swapAmount);
 
+  // Validate positive amount
+  if (!amount.gt(0)) {
+    throw new ContractError(
+      `Invalid swap amount: ${swapAmount} must be positive`,
+      { swapAmount },
+      "Swap amount must be greater than zero"
+    );
+  }
+
   // Typical swap costs on Soroban (in stroops)
   // Network fee is fixed Soroban operation cost
   const networkFee = new Big(BASE_FEE).times(2.5); // ~2.5x base for swap
@@ -176,9 +185,25 @@ export function estimateDepositFee(
   desiredAmountA: string,
   desiredAmountB: string
 ): FeeEstimate {
-  // Parse amounts to fail fast on invalid numeric inputs.
-  new Big(desiredAmountA);
-  new Big(desiredAmountB);
+  // Parse amounts and validate strictly positive values
+  const amountA = new Big(desiredAmountA);
+  const amountB = new Big(desiredAmountB);
+
+  if (!amountA.gt(0)) {
+    throw new ContractError(
+      `Invalid LP deposit amount A: ${desiredAmountA} must be positive`,
+      { desiredAmountA },
+      "Amount A must be greater than zero for LP deposits"
+    );
+  }
+
+  if (!amountB.gt(0)) {
+    throw new ContractError(
+      `Invalid LP deposit amount B: ${desiredAmountB} must be positive`,
+      { desiredAmountB },
+      "Amount B must be greater than zero for LP deposits"
+    );
+  }
 
   // LP operations typically consume more network resources than swaps.
   const networkFee = new Big(BASE_FEE).times(3); // Higher cost for LP
@@ -200,8 +225,16 @@ export function estimateDepositFee(
  * Estimates LP withdrawal fee
  */
 export function estimateWithdrawalFee(shareAmount: string): FeeEstimate {
-  // Parse amount to fail fast on invalid numeric input.
-  new Big(shareAmount);
+  // Parse amount and validate strictly positive value
+  const amount = new Big(shareAmount);
+
+  if (!amount.gt(0)) {
+    throw new ContractError(
+      `Invalid withdrawal share amount: ${shareAmount} must be positive`,
+      { shareAmount },
+      "Share amount must be greater than zero for LP withdrawals"
+    );
+  }
 
   const networkFee = new Big(BASE_FEE).times(2.8); // ~2.8x for withdrawal
 

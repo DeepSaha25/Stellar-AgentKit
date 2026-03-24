@@ -52,6 +52,14 @@ export interface BatchTransactionOptions {
   feeMultiplier?: number; // Multiplier for batch fee (operations cost more together)
 }
 
+/**
+ * Options for executeBatchTransaction - requires explicit networkPassphrase
+ * to prevent accidental mainnet/testnet mismatch
+ */
+export interface ExecuteBatchOptions extends Omit<BatchTransactionOptions, 'networkPassphrase'> {
+  networkPassphrase: string; // REQUIRED - prevent silent testnet submission
+}
+
 export interface BatchExecutionResult {
   transactionHash: string;
   ledger: number;
@@ -244,13 +252,13 @@ export class BatchTransactionBuilder {
 export async function executeBatchTransaction(
   transaction: any,
   privateKey: string,
-  options: BatchTransactionOptions = {}
+  options: ExecuteBatchOptions
 ): Promise<BatchExecutionResult> {
-  // Require explicit network passphrase to prevent accidental testnet submission of mainnet transactions
+  // networkPassphrase is required by type - but we also validate at runtime for clarity
   if (!options.networkPassphrase) {
     throw new TransactionError(
       "networkPassphrase must be explicitly provided to executeBatchTransaction",
-      { suggestion: "Specify which network: Networks.TESTNET or Networks.MAINNET" },
+      { suggestion: "Specify which network: Networks.TESTNET or Networks.PUBLIC" },
       "Pass networkPassphrase in options to ensure transactions are submitted to the correct network"
     );
   }
