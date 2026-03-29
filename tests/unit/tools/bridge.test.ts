@@ -79,7 +79,7 @@ describe('Bridge Tool - Multi-Chain Support', () => {
 
     it('should block mainnet when ALLOW_MAINNET_BRIDGE is false', () => {
       const fromNetwork: StellarNetwork = "stellar-mainnet";
-      const allowMainnetBridge = "false";
+      const allowMainnetBridge: string = "false";
       const shouldBlock = fromNetwork === "stellar-mainnet" && allowMainnetBridge !== "true";
       expect(shouldBlock).toBe(true);
     });
@@ -93,8 +93,8 @@ describe('Bridge Tool - Multi-Chain Support', () => {
 
     it('should always allow testnet regardless of ALLOW_MAINNET_BRIDGE', () => {
       const fromNetwork: StellarNetwork = "stellar-testnet";
-      const allowMainnetBridge = undefined;
-      const shouldBlock = fromNetwork === "stellar-mainnet" && allowMainnetBridge !== "true";
+      const allowMainnetBridge: string | undefined = undefined;
+      const shouldBlock = (fromNetwork as string) === "stellar-mainnet" && allowMainnetBridge !== "true";
       expect(shouldBlock).toBe(false);
     });
 
@@ -102,7 +102,7 @@ describe('Bridge Tool - Multi-Chain Support', () => {
       const chains: TargetChain[] = ["ethereum", "polygon", "arbitrum", "base"];
       chains.forEach((chain) => {
         const fromNetwork: StellarNetwork = "stellar-mainnet";
-        const allowMainnetBridge = undefined;
+        const allowMainnetBridge: string | undefined = undefined;
         const shouldBlock = fromNetwork === "stellar-mainnet" && allowMainnetBridge !== "true";
         expect(shouldBlock).toBe(true);
       });
